@@ -6308,6 +6308,7 @@ end)
 
 run(function()
     local AutoGapple = {}
+    local lastConsumeTime = 0
 
     AutoGapple = vape.Categories.Utility:CreateModule({
         Name = 'AutoGapple',
@@ -6319,11 +6320,14 @@ run(function()
                     local health = entitylib.character.Humanoid.Health
                     local maxHealth = entitylib.character.Humanoid.MaxHealth
                     local healthPercentage = (health / maxHealth) * 100
+                    local delay = AutoGapple.FastConsume.Enabled and 0.1 or AutoGapple.Delay.Value
 
-                    if healthPercentage <= AutoGapple.Health.Value then
+                    if healthPercentage <= AutoGapple.Health.Value and tick() - lastConsumeTime > delay then
                         local gapple, gappleSlot = getItem('golden_apple')
 
                         if gapple then
+                            lastConsumeTime = tick()
+
                             if AutoGapple.SwitchItem.Enabled then
                                 if hotbarSwitch(gappleSlot) then
                                     task.wait(0.1)
@@ -6337,8 +6341,6 @@ run(function()
                             if AutoGapple.Notification.Enabled then
                                 notif('AutoGapple', 'Consumed golden apple at ' .. math.floor(healthPercentage) .. '% health', 3)
                             end
-
-                            task.wait(AutoGapple.Delay.Value)
                         end
                     end
                 end))
@@ -6364,6 +6366,12 @@ run(function()
         Decimal = 10,
         Suffix = 's',
         Tooltip = 'Delay between consuming golden apples'
+    })
+
+    AutoGapple.FastConsume = AutoGapple:CreateToggle({
+        Name = 'Fast Consume',
+        Default = false,
+        Tooltip = 'Overrides delay for faster consumption'
     })
 
     AutoGapple.SwitchItem = AutoGapple:CreateToggle({
