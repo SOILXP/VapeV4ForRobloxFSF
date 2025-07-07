@@ -1541,12 +1541,17 @@ end)
 	
 run(function()
 	local AutoConsume
+	local SwitchItem
 	
 	local function consumeCheck()
 		if (lplr:GetAttribute('Shield') or 0) <= 0 and getItem('Shield') then
-			skywars.Remotes[remotes.updateActiveItem]:fire('Shield')
-			skywars.Remotes[remotes.usePowerUp]:fire()
-			skywars.Remotes[remotes.updateActiveItem]:fire(store.hand.Name)
+			if SwitchItem.Enabled then
+				skywars.Remotes[remotes.updateActiveItem]:fire('Shield')
+				skywars.Remotes[remotes.usePowerUp]:fire()
+				skywars.Remotes[remotes.updateActiveItem]:fire(store.hand.Name)
+			else
+				skywars.Remotes[remotes.usePowerUp]:fire()
+			end
 		end
 	end
 	
@@ -1560,6 +1565,12 @@ run(function()
 			end
 		end,
 		Tooltip = 'Automatically uses shield potions.'
+	})
+	
+	SwitchItem = AutoConsume:CreateToggle({
+		Name = 'Switch Item',
+		Default = true,
+		Tooltip = 'Switch to item before consuming'
 	})
 end)
 	

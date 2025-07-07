@@ -6232,12 +6232,16 @@ run(function()
 	local SpeedPotion
 	local Apple
 	local ShieldPotion
+	local SwitchItem
 	
 	local function consumeCheck(attribute)
 		if entitylib.isAlive then
 			if SpeedPotion.Enabled and (not attribute or attribute == 'StatusEffect_speed') then
 				local speedpotion = getItem('speed_potion')
 				if speedpotion and (not lplr.Character:GetAttribute('StatusEffect_speed')) then
+					if SwitchItem.Enabled then
+						switchItem(speedpotion.tool, 0.15)
+					end
 					for _ = 1, 4 do
 						if bedwars.Client:Get(remotes.ConsumeItem):CallServer({item = speedpotion.tool}) then break end
 					end
@@ -6249,6 +6253,9 @@ run(function()
 					local apple = getItem('orange') or (not lplr.Character:GetAttribute('StatusEffect_golden_apple') and getItem('golden_apple')) or getItem('apple')
 					
 					if apple then
+						if SwitchItem.Enabled then
+							switchItem(apple.tool, 0.15)
+						end
 						bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
 							item = apple.tool
 						})
@@ -6261,6 +6268,9 @@ run(function()
 					local shield = getItem('big_shield') or getItem('mini_shield')
 	
 					if shield then
+						if SwitchItem.Enabled then
+							switchItem(shield.tool, 0.15)
+						end
 						bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
 							item = shield.tool
 						})
@@ -6304,87 +6314,12 @@ run(function()
 		Name = 'Shield Potions',
 		Default = true
 	})
-end)
-
-run(function()
-    local AutoGapple = {}
-    local lastConsumeTime = 0
-
-    AutoGapple = vape.Categories.Utility:CreateModule({
-        Name = 'AutoGapple',
-        Function = function(callback)
-            if callback then
-                AutoGapple:Clean(runService.Heartbeat:Connect(function()
-                    if not entitylib.isAlive then return end
-
-                    local health = entitylib.character.Humanoid.Health
-                    local maxHealth = entitylib.character.Humanoid.MaxHealth
-                    local healthPercentage = (health / maxHealth) * 100
-                    local delay = AutoGapple.FastConsume.Enabled and 0.1 or AutoGapple.Delay.Value
-
-                    if healthPercentage <= AutoGapple.Health.Value and tick() - lastConsumeTime > delay then
-                        local gapple, gappleSlot = getItem('golden_apple')
-
-                        if gapple then
-                            lastConsumeTime = tick()
-
-                            if AutoGapple.SwitchItem.Enabled then
-                                if hotbarSwitch(gappleSlot) then
-                                    task.wait(0.1)
-                                end
-                            end
-
-                            bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
-                                item = gapple
-                            })
-
-                            if AutoGapple.Notification.Enabled then
-                                notif('AutoGapple', 'Consumed golden apple at ' .. math.floor(healthPercentage) .. '% health', 3)
-                            end
-                        end
-                    end
-                end))
-            end
-        end,
-        Tooltip = 'Automatically consumes golden apples when health is low'
-    })
-
-    AutoGapple.Health = AutoGapple:CreateSlider({
-        Name = 'Health',
-        Min = 1,
-        Max = 99,
-        Default = 50,
-        Suffix = '%',
-        Tooltip = 'Health percentage to consume golden apple'
-    })
-
-    AutoGapple.Delay = AutoGapple:CreateSlider({
-        Name = 'Delay',
-        Min = 0,
-        Max = 5,
-        Default = 1,
-        Decimal = 10,
-        Suffix = 's',
-        Tooltip = 'Delay between consuming golden apples'
-    })
-
-    AutoGapple.FastConsume = AutoGapple:CreateToggle({
-        Name = 'Fast Consume',
-        Default = false,
-        Tooltip = 'Overrides delay for faster consumption'
-    })
-
-    AutoGapple.SwitchItem = AutoGapple:CreateToggle({
-        Name = 'Switch Item',
-        Default = true,
-        Tooltip = 'Switch to golden apple before consuming'
-    })
-
-    AutoGapple.Notification = AutoGapple:CreateToggle({
-        Name = 'Notification',
-        Default = true,
-        Tooltip = 'Show notification when consuming'
-    })
+	
+	SwitchItem = AutoConsume:CreateToggle({
+		Name = 'Switch Item',
+		Default = true,
+		Tooltip = 'Switch to item before consuming'
+	})
 end)
 
 run(function()
