@@ -6305,7 +6305,80 @@ run(function()
 		Default = true
 	})
 end)
-	
+
+run(function()
+    local AutoGapple = {}
+
+    AutoGapple = vape.Categories.Utility:CreateModule({
+        Name = 'AutoGapple',
+        Function = function(callback)
+            if callback then
+                AutoGapple:Clean(runService.Heartbeat:Connect(function()
+                    if not entitylib.isAlive then return end
+
+                    local health = entitylib.character.Humanoid.Health
+                    local maxHealth = entitylib.character.Humanoid.MaxHealth
+                    local healthPercentage = (health / maxHealth) * 100
+
+                    if healthPercentage <= AutoGapple.Health.Value then
+                        local gapple, gappleSlot = getItem('golden_apple')
+
+                        if gapple then
+                            if AutoGapple.SwitchItem.Enabled then
+                                if hotbarSwitch(gappleSlot) then
+                                    task.wait(0.1)
+                                end
+                            end
+
+                            bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
+                                item = gapple
+                            })
+
+                            if AutoGapple.Notification.Enabled then
+                                notif('AutoGapple', 'Consumed golden apple at ' .. math.floor(healthPercentage) .. '% health', 3)
+                            end
+
+                            task.wait(AutoGapple.Delay.Value)
+                        end
+                    end
+                end))
+            end
+        end,
+        Tooltip = 'Automatically consumes golden apples when health is low'
+    })
+
+    AutoGapple.Health = AutoGapple:CreateSlider({
+        Name = 'Health',
+        Min = 1,
+        Max = 99,
+        Default = 50,
+        Suffix = '%',
+        Tooltip = 'Health percentage to consume golden apple'
+    })
+
+    AutoGapple.Delay = AutoGapple:CreateSlider({
+        Name = 'Delay',
+        Min = 0,
+        Max = 5,
+        Default = 1,
+        Decimal = 10,
+        Suffix = 's',
+        Tooltip = 'Delay between consuming golden apples'
+    })
+
+    AutoGapple.SwitchItem = AutoGapple:CreateToggle({
+        Name = 'Switch Item',
+        Default = true,
+        Tooltip = 'Switch to golden apple before consuming'
+    })
+
+    AutoGapple.Notification = AutoGapple:CreateToggle({
+        Name = 'Notification',
+        Default = true,
+        Tooltip = 'Show notification when consuming'
+    })
+end)
+
 run(function()
 	local AutoHotbar
 	local Mode
