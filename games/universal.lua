@@ -1,3 +1,6 @@
+-- universal.lua (clean)
+-- All modules removed and replaced with contents from 6872274481.lua
+
 local run = function(func)
 	func()
 end
@@ -11,7 +14,7 @@ local vapeEvents = setmetatable({}, {
 	end
 })
 
-local playersService = cloneref(game:GetService('Players'))
+" + `local playersService = cloneref(game:GetService('Players'))
 local replicatedStorage = cloneref(game:GetService('ReplicatedStorage'))
 local runService = cloneref(game:GetService('RunService'))
 local inputService = cloneref(game:GetService('UserInputService'))
@@ -1943,254 +1946,6 @@ run(function()
 	TP = Fly:CreateToggle({
 		Name = 'TP Down',
 		Default = true
-	})
-end)
-
-run(function()
-	local ProjectileAimbot
-	local Targets
-	local Range
-	local Prediction
-	local PingCompensation
-	local Smoothness
-	local FOV
-	local TargetPart
-	local ShowFOV
-	local fovCircle
-	
-	local function getPing()
-		local ping = 0
-		pcall(function()
-			ping = tonumber(string.split(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString(), " ")[1]) or 0
-		end)
-		return ping
-	end
-	
-	local function predictPosition(entity, projectileSpeed, gravity)
-		if not entity or not entity.Character or not entity.Character.PrimaryPart then
-			return nil
-		end
-		
-		local targetPos = entity.Character.PrimaryPart.Position
-		local targetVel = entity.Character.PrimaryPart.AssemblyLinearVelocity
-		local shooterPos = entitylib.character.RootPart.Position
-		
-		-- Basic prediction without ping compensation
-		local distance = (targetPos - shooterPos).Magnitude
-		local timeToTarget = distance / projectileSpeed
-		local predictedPos = targetPos + (targetVel * timeToTarget)
-		
-		-- Add ping compensation if enabled
-		if PingCompensation.Enabled then
-			local ping = getPing()
-			local pingDelay = ping / 1000 -- Convert to seconds
-			-- Very slight compensation - ping doesn't have huge impact
-			local pingCompensation = targetVel * (pingDelay * 0.3) -- 30% of ping delay
-			predictedPos = predictedPos + pingCompensation
-		end
-		
-		-- Apply gravity compensation for projectiles
-		if gravity and gravity > 0 then
-			local gravityDrop = 0.5 * gravity * (timeToTarget ^ 2)
-			predictedPos = predictedPos + Vector3.new(0, gravityDrop, 0)
-		end
-		
-		return predictedPos
-	end
-	
-	local function getProjectileSpeed(tool)
-		if not tool then return 100 end
-		
-		local meta = bedwars.ItemMeta[tool.Name]
-		if meta and meta.projectileSource then
-			local projectileType = meta.projectileSource.projectileType
-			if projectileType then
-				local projectileMeta = bedwars.ProjectileMeta[projectileType('arrow') or projectileType()]
-				if projectileMeta and projectileMeta.launchVelocity then
-					return projectileMeta.launchVelocity
-				end
-			end
-		end
-		
-		-- Default speeds for common projectiles
-		if tool.Name:find('bow') then return 100
-		elseif tool.Name:find('crossbow') then return 120
-		elseif tool.Name:find('fireball') then return 40
-		end
-		
-		return 100
-	end
-	
-	local function isInFOV(targetPos)
-		if FOV.Value >= 360 then return true end
-		
-		local camera = workspace.CurrentCamera
-		local screenPos, onScreen = camera:WorldToViewportPoint(targetPos)
-		if not onScreen then return false end
-		
-		local screenCenter = camera.ViewportSize / 2
-		local distance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-		local fovRadius = math.tan(math.rad(FOV.Value / 2)) * (targetPos - camera.CFrame.Position).Magnitude
-		
-		return distance <= fovRadius
-	end
-	
-	ProjectileAimbot = vape.Categories.Blatant:CreateModule({
-		Name = 'ProjectileAimbot',
-		Function = function(callback)
-			if callback then
-				if ShowFOV.Enabled then
-					fovCircle = Drawing.new('Circle')
-					fovCircle.Thickness = 2
-					fovCircle.NumSides = 50
-					fovCircle.Radius = FOV.Value * 2
-					fovCircle.Filled = false
-					fovCircle.Color = Color3.new(1, 1, 1)
-					fovCircle.Transparency = 0.5
-					fovCircle.Visible = true
-				end
-				
-				ProjectileAimbot:Clean(runService.Heartbeat:Connect(function()
-					if not entitylib.isAlive then return end
-					
-					local tool = lplr.Character and lplr.Character:FindFirstChildOfClass('Tool')
-					if not tool then return end
-					
-					-- Check if tool is a projectile weapon
-					local meta = bedwars.ItemMeta[tool.Name]
-					if not meta or not meta.projectileSource then return end
-					
-					-- Update FOV circle
-					if fovCircle then
-						local camera = workspace.CurrentCamera
-						fovCircle.Position = camera.ViewportSize / 2
-						fovCircle.Radius = FOV.Value * 2
-						fovCircle.Visible = ShowFOV.Enabled
-					end
-					
-					-- Find target
-					local targets = entitylib.AllPosition({
-						Range = Range.Value,
-						Part = TargetPart.Value,
-						Players = Targets.Players.Enabled,
-						NPCs = Targets.NPCs.Enabled,
-						Wallcheck = Targets.Walls.Enabled
-					})
-					
-					local bestTarget = nil
-					local bestDistance = math.huge
-					
-					for _, target in targets do
-						if target.Character and target.Character.PrimaryPart then
-							local targetPos = target.Character[TargetPart.Value].Position
-							if isInFOV(targetPos) then
-								local distance = (targetPos - entitylib.character.RootPart.Position).Magnitude
-								if distance < bestDistance then
-									bestDistance = distance
-									bestTarget = target
-								end
-							end
-						end
-					end
-					
-					if bestTarget then
-						local projectileSpeed = getProjectileSpeed(tool)
-						local gravity = 196.2 -- Roblox gravity
-						
-						local aimPos
-						if Prediction.Enabled then
-							aimPos = predictPosition(bestTarget, projectileSpeed, gravity)
-						else
-							aimPos = bestTarget.Character[TargetPart.Value].Position
-						end
-						
-						if aimPos then
-							local camera = workspace.CurrentCamera
-							local currentCFrame = camera.CFrame
-							local targetCFrame = CFrame.lookAt(camera.CFrame.Position, aimPos)
-							
-							-- Apply smoothness
-							if Smoothness.Value > 0 then
-								local alpha = math.min(runService.Heartbeat:Wait() * (20 - Smoothness.Value), 1)
-								targetCFrame = currentCFrame:Lerp(targetCFrame, alpha)
-							end
-							
-							camera.CFrame = targetCFrame
-						end
-					end
-				end))
-			else
-				if fovCircle then
-					fovCircle:Remove()
-					fovCircle = nil
-				end
-			end
-		end,
-		Tooltip = 'Automatically aims projectile weapons with ping-based prediction'
-	})
-	
-	Targets = ProjectileAimbot:CreateTargets({
-		Players = true,
-		NPCs = false,
-		Walls = false
-	})
-	
-	Range = ProjectileAimbot:CreateSlider({
-		Name = 'Range',
-		Min = 10,
-		Max = 100,
-		Default = 50,
-		Suffix = function(val)
-			return val == 1 and 'stud' or 'studs'
-		end
-	})
-	
-	Prediction = ProjectileAimbot:CreateToggle({
-		Name = 'Prediction',
-		Default = true,
-		Tooltip = 'Predicts enemy movement for better accuracy'
-	})
-	
-	PingCompensation = ProjectileAimbot:CreateToggle({
-		Name = 'Ping Compensation',
-		Default = true,
-		Tooltip = 'Slightly adjusts aim based on your ping (very minimal effect)'
-	})
-	
-	Smoothness = ProjectileAimbot:CreateSlider({
-		Name = 'Smoothness',
-		Min = 0,
-		Max = 15,
-		Default = 5,
-		Tooltip = 'How smooth the aimbot movement is (0 = instant)'
-	})
-	
-	FOV = ProjectileAimbot:CreateSlider({
-		Name = 'FOV',
-		Min = 10,
-		Max = 360,
-		Default = 90,
-		Suffix = '°',
-		Function = function(val)
-			if fovCircle then
-				fovCircle.Radius = val * 2
-			end
-		end
-	})
-	
-	TargetPart = ProjectileAimbot:CreateDropdown({
-		Name = 'Target Part',
-		List = {'Head', 'HumanoidRootPart', 'RootPart'},
-		Default = 'HumanoidRootPart'
-	})
-	
-	ShowFOV = ProjectileAimbot:CreateToggle({
-		Name = 'Show FOV',
-		Function = function(callback)
-			if fovCircle then
-				fovCircle.Visible = callback and ProjectileAimbot.Enabled
-			end
-		end
 	})
 end)
 	
@@ -6480,16 +6235,12 @@ run(function()
 	local SpeedPotion
 	local Apple
 	local ShieldPotion
-	local SwitchItem
 	
 	local function consumeCheck(attribute)
 		if entitylib.isAlive then
 			if SpeedPotion.Enabled and (not attribute or attribute == 'StatusEffect_speed') then
 				local speedpotion = getItem('speed_potion')
 				if speedpotion and (not lplr.Character:GetAttribute('StatusEffect_speed')) then
-					if SwitchItem.Enabled then
-						switchItem(speedpotion.tool, 0.15)
-					end
 					for _ = 1, 4 do
 						if bedwars.Client:Get(remotes.ConsumeItem):CallServer({item = speedpotion.tool}) then break end
 					end
@@ -6501,9 +6252,6 @@ run(function()
 					local apple = getItem('orange') or (not lplr.Character:GetAttribute('StatusEffect_golden_apple') and getItem('golden_apple')) or getItem('apple')
 					
 					if apple then
-						if SwitchItem.Enabled then
-							switchItem(apple.tool, 0.15)
-						end
 						bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
 							item = apple.tool
 						})
@@ -6516,9 +6264,6 @@ run(function()
 					local shield = getItem('big_shield') or getItem('mini_shield')
 	
 					if shield then
-						if SwitchItem.Enabled then
-							switchItem(shield.tool, 0.15)
-						end
 						bedwars.Client:Get(remotes.ConsumeItem):CallServerAsync({
 							item = shield.tool
 						})
@@ -6562,14 +6307,8 @@ run(function()
 		Name = 'Shield Potions',
 		Default = true
 	})
-	
-	SwitchItem = AutoConsume:CreateToggle({
-		Name = 'Switch Item',
-		Default = true,
-		Tooltip = 'Switch to item before consuming'
-	})
 end)
-
+	
 run(function()
 	local AutoHotbar
 	local Mode
@@ -8754,4 +8493,4 @@ run(function()
 		List = WinEffectName
 	})
 end)
-	
+
