@@ -42,3 +42,36 @@ local whitelist = vape.Libraries.whitelist
 local prediction = vape.Libraries.prediction
 local getfontsize = vape.Libraries.getfontsize
 local getcustomasset = vape.Libraries.getcustomasset
+
+run(function()
+    local Module = vape.Categories.Utility:CreateModule({
+        Name = "AlwaysPerfect",
+        Description = "always perfect pan farm lel",
+        Toggle = function(callback)
+            if callback then
+                local running = true
+                Module.Connections["Loop"] = game:GetService("RunService").RenderStepped:Connect(function()
+                    if not running then return end
+                    local plr = game:GetService("Players").LocalPlayer
+                    local tool = plr.Character and plr.Character:FindFirstChild("Plastic Pan")
+                    if tool then
+                        local scripts = tool:FindFirstChild("Scripts")
+                        if scripts then
+                            local remote = scripts:FindFirstChild("Collect")
+                            if remote and typeof(remote) == "BindableFunction" or typeof(remote) == "RemoteFunction" then
+                                pcall(function()
+                                    remote:InvokeServer(1)
+                                end)
+                            end
+                        end
+                    end
+                end)
+            else
+                if Module.Connections["Loop"] then
+                    Module.Connections["Loop"]:Disconnect()
+                    Module.Connections["Loop"] = nil
+                end
+            end
+        end
+    })
+end)
