@@ -57,32 +57,52 @@ local vape = shared.vape
 vape:CreateNotification('Vape', 'Universal base loaded without modules.', 5, 'info')
 
 run(function()
-    local Module = vape.Categories.Utility:CreateModule({
-        Name = "AlwaysPerfect",
-        Description = "always perfect pan farm lel",
-        Toggle = function(callback)
+    vape.Categories.Utility:CreateModule({
+        Name = "BecomeBombHead",
+        Description = "fires the bbuybombhead remote once",
+        Enabled = false,
+        Default = false,
+        Function = function(callback)
             if callback then
-                local running = true
-                Module.Connections["Loop"] = game:GetService("RunService").RenderStepped:Connect(function()
-                    if not running then return end
-                    local plr = game:GetService("Players").LocalPlayer
-                    local tool = plr.Character and plr.Character:FindFirstChild("Plastic Pan")
-                    if tool then
-                        local scripts = tool:FindFirstChild("Scripts")
-                        if scripts then
-                            local remote = scripts:FindFirstChild("Collect")
-                            if remote and typeof(remote) == "BindableFunction" or typeof(remote) == "RemoteFunction" then
-                                pcall(function()
-                                    remote:InvokeServer(1)
-                                end)
-                            end
-                        end
+                local success, err = pcall(function()
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("buyBombHead"):InvokeServer()
+                end)
+
+                if not success then
+                    vape.Notify("BuyBombHead Error", tostring(err), 5)
+                end
+
+                task.delay(0.1, function()
+                    shared.vapeExecutor.UnToggle("BuyBombHead")
+                end)
+            end
+        end
+    })
+end)
+
+run(function()
+    local connection
+
+    vape.Categories.Blatant:CreateModule({
+        Name = "AntiRagdoll",
+        Description = "Spams Ragdoll 'off' while active",
+        Enabled = false,
+        Default = false,
+        Function = function(state)
+            if state then
+                connection = task.spawn(function()
+                    local args = { "off" }
+                    while vape.Categories.Blatant:GetModule("RagdollSpam").Enabled do
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Ragdoll"):FireServer(unpack(args))
+                        end)
+                        task.wait(0.1) -- spam speed (adjust as needed)
                     end
                 end)
             else
-                if Module.Connections["Loop"] then
-                    Module.Connections["Loop"]:Disconnect()
-                    Module.Connections["Loop"] = nil
+                if connection then
+                    task.cancel(connection)
+                    connection = nil
                 end
             end
         end
